@@ -115,7 +115,9 @@ export class Cabinet {
                   </div>
                 </div>
               </div>
-              <div class="deck-front"><span>ARROWS / WASD</span><b>Z</b><b>X</b><b>C</b><span>ESC PAUSE</span><span>F FULLSCREEN</span></div>
+              <div class="deck-front" aria-label="Keyboard controls: arrows or WASD move, Z is arcade button A, X is arcade button B, C is arcade button C, Enter starts or confirms, Escape pauses or goes back, F toggles fullscreen">
+                <span>KEYBOARD · MOVE: ARROWS/WASD · Z → A · X → B · C → C · ENTER → START · ESC → PAUSE/BACK · F → FULL</span>
+              </div>
             </section>
           </article>
         </main>
