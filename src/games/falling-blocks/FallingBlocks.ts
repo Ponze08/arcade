@@ -96,7 +96,7 @@ const I_KICKS: readonly Point[] = [
 /** Seven-piece falling-block puzzle with bag randomization, hold, previews and wall kicks. */
 export class FallingBlocks extends BaseGame {
   readonly id = 'falling-blocks' as const;
-  readonly title = 'FALLING BLOCKS';
+  readonly title = 'TETRIS';
   readonly controls = 'A/UP: ROTATE  B: REVERSE  C: DROP  START: HOLD';
 
   private board: Cell[][] = this.emptyBoard();

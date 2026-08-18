@@ -8,7 +8,7 @@ const KEY_MAP: Record<string, Action | undefined> = {
   ArrowLeft: 'left', KeyA: 'left',
   ArrowRight: 'right', KeyD: 'right',
   KeyZ: 'buttonA', KeyX: 'buttonB', KeyC: 'buttonC',
-  Enter: 'start', NumpadEnter: 'start', Digit5: 'coin', Numpad5: 'coin',
+  Enter: 'start', NumpadEnter: 'start',
   Escape: 'pause',
 };
 

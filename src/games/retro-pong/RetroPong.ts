@@ -31,7 +31,7 @@ const TARGET_SCORE = 9;
 /** Minimal early-arcade pong with a fallible, progressively stronger CPU opponent. */
 export class RetroPong extends BaseGame {
   readonly id = 'retro-pong' as const;
-  readonly title = 'RETRO PONG';
+  readonly title = 'PONG';
   readonly controls = 'UP/DOWN: MOVE  •  A: QUICK SERVE';
 
   private ball: PongBall = this.newBall();

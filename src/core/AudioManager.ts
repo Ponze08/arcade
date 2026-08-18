@@ -66,7 +66,6 @@ export class AudioManager {
     const patterns: Record<SoundName, [number, number, OscillatorType, number, number?]> = {
       move: [160, 0.035, 'square', 0.035, 120],
       button: [95, 0.045, 'square', 0.07, 65],
-      coin: [880, 0.18, 'square', 0.12, 1760],
       start: [240, 0.24, 'sawtooth', 0.09, 720],
       confirm: [420, 0.1, 'square', 0.075, 840],
       shot: [720, 0.09, 'square', 0.065, 180],

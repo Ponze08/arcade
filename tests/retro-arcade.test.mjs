@@ -5,13 +5,13 @@ import test from 'node:test';
 
 const cwd = process.cwd();
 const gameDefinitions = [
-  ['maze-chaser', 'MazeChaser'],
-  ['star-invaders', 'StarInvaders'],
-  ['vector-rocks', 'VectorRocks'],
-  ['block-breaker', 'BlockBreaker'],
-  ['retro-pong', 'RetroPong'],
-  ['falling-blocks', 'FallingBlocks'],
-  ['neon-snake', 'NeonSnake'],
+  ['maze-chaser', 'MazeChaser', 'PAC-MAN'],
+  ['star-invaders', 'StarInvaders', 'SPACE INVADERS'],
+  ['vector-rocks', 'VectorRocks', 'ASTEROIDS'],
+  ['block-breaker', 'BlockBreaker', 'BREAKOUT'],
+  ['retro-pong', 'RetroPong', 'PONG'],
+  ['falling-blocks', 'FallingBlocks', 'TETRIS'],
+  ['neon-snake', 'NeonSnake', 'SNAKE'],
 ];
 
 test('production bundle contains the complete arcade shell', async () => {
@@ -22,10 +22,11 @@ test('production bundle contains the complete arcade shell', async () => {
   assert.ok(assets.some((name) => name.endsWith('.css')), 'Cabinet stylesheet missing');
 });
 
-test('all seven games are concrete BaseGame implementations', async () => {
-  for (const [folder, className] of gameDefinitions) {
+test('all seven classic games are concrete BaseGame implementations', async () => {
+  for (const [folder, className, title] of gameDefinitions) {
     const source = await readFile(join(cwd, 'src', 'games', folder, `${className}.ts`), 'utf8');
     assert.match(source, new RegExp(`export class ${className} extends BaseGame`));
+    assert.ok(source.includes(`readonly title = '${title}'`), `${title} title missing`);
     assert.match(source, /update\s*\(/);
     assert.match(source, /render\s*\(/);
     assert.doesNotMatch(source, /addEventListener|setInterval/);
@@ -40,7 +41,8 @@ test('input, audio, storage and state are centralized', async () => {
   const storage = await readFile(join(cwd, 'src', 'core', 'StorageManager.ts'), 'utf8');
   assert.match(input, /ArrowUp: 'up'/);
   assert.match(input, /KeyZ: 'buttonA'/);
-  assert.match(input, /Digit5: 'coin'/);
+  assert.match(input, /event\.code === 'KeyF'/);
+  assert.doesNotMatch(input, /coin/i);
   for (const state of ['POWER_OFF', 'BOOTING', 'MAIN_MENU', 'GAME_LOADING', 'PLAYING', 'PAUSED', 'GAME_OVER', 'ATTRACT_MODE', 'SETTINGS', 'HALL_OF_FAME']) {
     assert.ok(machine.includes(state), `state ${state} is not integrated`);
   }
@@ -51,9 +53,10 @@ test('input, audio, storage and state are centralized', async () => {
 
 test('cabinet exposes physical controls and CRT layers', async () => {
   const cabinet = await readFile(join(cwd, 'src', 'ui', 'Cabinet.ts'), 'utf8');
-  for (const testId of ['joystick', 'button-a', 'button-b', 'button-c', 'start-button', 'coin-button', 'crt-screen', 'screen-status']) {
+  for (const testId of ['joystick', 'button-a', 'button-b', 'button-c', 'start-button', 'fullscreen-button', 'crt-screen', 'screen-status']) {
     assert.ok(cabinet.includes(`data-testid=\\"${testId}\\"`) || cabinet.includes(`data-testid="${testId}"`), `${testId} missing`);
   }
+  assert.doesNotMatch(cabinet, /coin|lower-cabinet/i);
   for (const layer of ['crt-scanlines', 'crt-noise', 'crt-vignette', 'crt-reflection', 'crt-shutdown']) {
     assert.ok(cabinet.includes(layer), `${layer} missing`);
   }

@@ -39,7 +39,7 @@ const RIGHT: GridPoint = { x: 1, y: 0 };
 /** A neon, grid-based snake game built for the arcade's 384 x 288 canvas. */
 export class NeonSnake extends BaseGame {
   readonly id = 'neon-snake' as const;
-  readonly title = 'NEON SNAKE';
+  readonly title = 'SNAKE';
   readonly controls = 'FRECCE/WASD: MUOVI  •  A: TURBO';
 
   private snake: GridPoint[] = [];

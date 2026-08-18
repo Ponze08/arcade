@@ -58,7 +58,7 @@ interface VectorStar {
 /** Inertial vector-space shooter with three-stage splitting asteroids. */
 export class VectorRocks extends BaseGame {
   readonly id = 'vector-rocks' as const;
-  readonly title = 'VECTOR ROCKS';
+  readonly title = 'ASTEROIDS';
   readonly controls = '← → ROTATE  ·  ↑ THRUST  ·  A FIRE  ·  B HYPER';
 
   private ship: Ship = this.newShip();
@@ -699,7 +699,7 @@ export class VectorRocks extends BaseGame {
     let line = '';
     let subline = '';
     if (this.readyTimer > 0) {
-      line = this.level === 1 ? 'VECTOR ROCKS' : `FIELD ${this.level}`;
+      line = this.level === 1 ? 'ASTEROIDS' : `FIELD ${this.level}`;
       subline = 'THRUST TO SURVIVE';
     } else if (this.waveTimer > 0) {
       line = 'FIELD CLEAR';

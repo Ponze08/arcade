@@ -26,13 +26,11 @@ const defaultSettings = (): ArcadeSettings => ({
   flicker: true,
   rgbShift: true,
   glow: true,
-  freePlay: false,
 });
 
 const defaultStats = (): ArcadeStats => ({
   gamesPlayed: 0,
   totalPlaySeconds: 0,
-  coinsInserted: 0,
   playsByGame: Object.fromEntries(GAME_IDS.map((id) => [id, 0])) as Record<GameId, number>,
 });
 
@@ -75,11 +73,6 @@ export class StorageManager {
     this.data.settings = { ...this.data.settings, ...patch };
     this.save();
     return this.settings;
-  }
-
-  recordCoin(): void {
-    this.data.stats.coinsInserted += 1;
-    this.save();
   }
 
   recordGame(id: GameId): void {

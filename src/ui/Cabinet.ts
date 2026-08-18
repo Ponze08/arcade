@@ -15,25 +15,20 @@ export class Cabinet {
   private readonly room: HTMLElement;
   private readonly cabinet: HTMLElement;
   private readonly joystick: HTMLElement;
-  private readonly startButton: HTMLElement;
-  private readonly coinButton: HTMLElement;
-  private readonly coinLed: HTMLElement;
-  private readonly creditDisplay: HTMLElement;
+  private readonly fullscreenButton: HTMLButtonElement;
   private readonly screenStatus: HTMLElement;
   private readonly screenFlash: HTMLElement;
   private readonly controls = new Map<string, HTMLElement>();
   private readonly cleanups: Array<() => void> = [];
   private flashTimer = 0;
-  private coinLightTimeout = 0;
   private lastJoystickX = Number.NaN;
   private lastJoystickY = Number.NaN;
-  private lastCredits = '';
   private lastState = '';
   private lastGame = '';
   private lastStatus = '';
   private lastSettings = '';
 
-  constructor(root: HTMLElement, input: InputManager, onPowerToggle: () => void) {
+  constructor(root: HTMLElement, input: InputManager, onFullscreen: () => void) {
     root.innerHTML = `
       <div class="arcade-room" data-crt="medium" data-power="booting">
         <div class="ambient-glow ambient-glow--pink"></div>
@@ -111,36 +106,17 @@ export class Cabinet {
 
                 <div class="system-cluster">
                   <div class="system-button-wrap">
-                    <button class="system-button system-button--start" data-action="start" data-testid="start-button" aria-label="Start, tasto Invio"><i></i></button>
+                    <button class="system-button system-button--start is-ready" data-action="start" data-testid="start-button" aria-label="Start, tasto Invio"><i></i></button>
                     <span>START</span>
                   </div>
-                  <div class="credit-counter"><span>CREDIT</span><strong data-testid="credit-display">00</strong></div>
+                  <div class="system-button-wrap">
+                    <button class="system-button system-button--fullscreen" data-testid="fullscreen-button" type="button" aria-label="Attiva o disattiva schermo intero, tasto F" aria-pressed="false"><i></i></button>
+                    <span>FULL</span>
+                  </div>
                 </div>
               </div>
-              <div class="deck-front"><span>ARROWS / WASD</span><b>Z</b><b>X</b><b>C</b><span>ESC PAUSE</span></div>
+              <div class="deck-front"><span>ARROWS / WASD</span><b>Z</b><b>X</b><b>C</b><span>ESC PAUSE</span><span>F FULLSCREEN</span></div>
             </section>
-
-            <section class="lower-cabinet">
-              <div class="wear-mark wear-mark--one"></div><div class="wear-mark wear-mark--two"></div>
-              <div class="instruction-plate">
-                <b>PLAYER GUIDE</b>
-                <span>MOVE JOYSTICK TO SELECT</span>
-                <span>INSERT COIN · PRESS START</span>
-                <small>ORIGINAL SOFTWARE · NO ROM INSIDE</small>
-              </div>
-              <div class="coin-door">
-                <span class="coin-door-screw coin-door-screw--tl"></span><span class="coin-door-screw coin-door-screw--tr"></span>
-                <div class="coin-slot-label">INSERT COIN</div>
-                <button class="coin-slot" data-action="coin" data-testid="coin-button" aria-label="Inserisci moneta, tasto 5">
-                  <span class="coin-led"></span><i></i><b>€ / 5</b>
-                </button>
-                <div class="coin-return">PUSH TO REJECT</div>
-                <div class="coin-lock" aria-hidden="true"></div>
-              </div>
-              <button class="power-switch" data-testid="power-button" aria-label="Accensione macchina" title="Power"><i></i><span>POWER</span></button>
-              <div class="serial-plate"><b>RETRO ARCADE INDUSTRIES</b><span>MODEL RA-88/7</span><span>S/N 1988-0716</span></div>
-            </section>
-            <footer class="cabinet-plinth"><span></span><span></span></footer>
           </article>
         </main>
         <div class="screen-reader-status" data-testid="screen-status" aria-live="polite"></div>
@@ -153,10 +129,7 @@ export class Cabinet {
     this.canvas = requireElement(root, 'canvas');
     this.context = this.canvas.getContext('2d', { alpha: false })!;
     this.context.imageSmoothingEnabled = false;
-    this.startButton = requireElement(root, '[data-action="start"]');
-    this.coinButton = requireElement(root, '[data-action="coin"]');
-    this.coinLed = requireElement(root, '.coin-led');
-    this.creditDisplay = requireElement(root, '[data-testid="credit-display"]');
+    this.fullscreenButton = requireElement(root, '[data-testid="fullscreen-button"]');
     this.screenStatus = requireElement(root, '[data-testid="screen-status"]');
     this.screenFlash = requireElement(root, '.crt-flash');
 
@@ -167,9 +140,13 @@ export class Cabinet {
     }
     input.bindJoystick(this.joystick);
     this.cleanups.push(input.subscribe((action, down) => this.controls.get(action)?.classList.toggle('is-pressed', down)));
-    const powerButton = requireElement<HTMLButtonElement>(root, '.power-switch');
-    powerButton.addEventListener('click', onPowerToggle);
-    this.cleanups.push(() => powerButton.removeEventListener('click', onPowerToggle));
+    const syncFullscreen = (): void => {
+      this.fullscreenButton.setAttribute('aria-pressed', String(Boolean(document.fullscreenElement)));
+    };
+    this.fullscreenButton.addEventListener('click', onFullscreen);
+    document.addEventListener('fullscreenchange', syncFullscreen);
+    this.cleanups.push(() => this.fullscreenButton.removeEventListener('click', onFullscreen));
+    this.cleanups.push(() => document.removeEventListener('fullscreenchange', syncFullscreen));
 
     let targetX = 0;
     let targetY = 0;
@@ -190,16 +167,6 @@ export class Cabinet {
     this.lastJoystickY = vertical;
     this.joystick.style.setProperty('--joy-x', String(horizontal));
     this.joystick.style.setProperty('--joy-y', String(vertical));
-  }
-
-  setCredits(value: number, freePlay: boolean): void {
-    const display = freePlay ? 'FP' : String(value).padStart(2, '0');
-    const signature = `${display}:${freePlay}`;
-    if (signature === this.lastCredits) return;
-    this.lastCredits = signature;
-    this.creditDisplay.textContent = display;
-    this.startButton.classList.toggle('is-ready', freePlay || value > 0);
-    this.room.dataset.credits = String(value);
   }
 
   setState(state: AppState): void {
@@ -232,15 +199,6 @@ export class Cabinet {
     this.room.classList.toggle('glow-off', !settings.glow);
   }
 
-  flashCoin(): void {
-    this.coinButton.classList.remove('is-accepting');
-    void this.coinButton.offsetWidth;
-    this.coinButton.classList.add('is-accepting');
-    this.coinLed.classList.add('is-lit');
-    window.clearTimeout(this.coinLightTimeout);
-    this.coinLightTimeout = window.setTimeout(() => this.coinLed.classList.remove('is-lit'), 420);
-  }
-
   flash(color = '#ffffff', intensity = 0.6): void {
     this.screenFlash.style.setProperty('--flash-color', color);
     this.screenFlash.style.setProperty('--flash-alpha', String(Math.max(0, Math.min(1, intensity))));
@@ -258,7 +216,6 @@ export class Cabinet {
   }
 
   destroy(): void {
-    window.clearTimeout(this.coinLightTimeout);
     for (const cleanup of this.cleanups) cleanup();
     this.cleanups.length = 0;
   }

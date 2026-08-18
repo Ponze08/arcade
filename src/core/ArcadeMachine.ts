@@ -1,5 +1,4 @@
 import { AudioManager } from './AudioManager';
-import { CreditManager } from './CreditManager';
 import { GameManager } from './GameManager';
 import { InputManager } from './InputManager';
 import { StateManager, type AppState } from './StateManager';
@@ -24,20 +23,20 @@ interface GameInfo {
 }
 
 const GAMES: GameInfo[] = [
-  { id: 'maze-chaser', title: 'MAZE CHASER', tagline: 'CHASE THE LIGHT', instructions: 'COLLECT EVERY SPARK · OUTSMART FOUR HUNTERS', color: '#ffe45b' },
-  { id: 'star-invaders', title: 'STAR INVADERS', tagline: 'DEFEND THE LAST SKY', instructions: 'MOVE · FIRE · PROTECT YOUR BARRIERS', color: '#65ff9b' },
-  { id: 'vector-rocks', title: 'VECTOR ROCKS', tagline: 'NEON SPACE PATROL', instructions: 'ROTATE · THRUST · SPLIT THE ROCKS', color: '#8ffcff' },
-  { id: 'block-breaker', title: 'BLOCK BREAKER', tagline: 'BREAK THE GRID', instructions: 'BOUNCE · CATCH POWER-UPS · CLEAR THE WALL', color: '#ff8a4c' },
-  { id: 'retro-pong', title: 'RETRO PONG', tagline: 'THE FIRST DUEL', instructions: 'FIRST TO ELEVEN · ANGLES ARE EVERYTHING', color: '#f4f4e8' },
-  { id: 'falling-blocks', title: 'FALLING BLOCKS', tagline: 'ORDER FROM CHAOS', instructions: 'ROTATE · HOLD · BUILD PERFECT LINES', color: '#cb72ff' },
-  { id: 'neon-snake', title: 'NEON SNAKE', tagline: 'GROW INTO THE NIGHT', instructions: 'EAT · GROW · NEVER TURN BACK', color: '#40ffcf' },
+  { id: 'maze-chaser', title: 'PAC-MAN', tagline: 'CHASE THE LIGHT', instructions: 'COLLECT EVERY SPARK · OUTSMART FOUR HUNTERS', color: '#ffe45b' },
+  { id: 'star-invaders', title: 'SPACE INVADERS', tagline: 'DEFEND THE LAST SKY', instructions: 'MOVE · FIRE · PROTECT YOUR BARRIERS', color: '#65ff9b' },
+  { id: 'vector-rocks', title: 'ASTEROIDS', tagline: 'NEON SPACE PATROL', instructions: 'ROTATE · THRUST · SPLIT THE ROCKS', color: '#8ffcff' },
+  { id: 'block-breaker', title: 'BREAKOUT', tagline: 'BREAK THE GRID', instructions: 'BOUNCE · CATCH POWER-UPS · CLEAR THE WALL', color: '#ff8a4c' },
+  { id: 'retro-pong', title: 'PONG', tagline: 'THE FIRST DUEL', instructions: 'FIRST TO ELEVEN · ANGLES ARE EVERYTHING', color: '#f4f4e8' },
+  { id: 'falling-blocks', title: 'TETRIS', tagline: 'ORDER FROM CHAOS', instructions: 'ROTATE · HOLD · BUILD PERFECT LINES', color: '#cb72ff' },
+  { id: 'neon-snake', title: 'SNAKE', tagline: 'GROW INTO THE NIGHT', instructions: 'EAT · GROW · NEVER TURN BACK', color: '#40ffcf' },
 ];
 
 const PAUSE_ITEMS = ['RESUME', 'RESTART', 'GAME SELECT', 'SETTINGS', 'POWER OFF'];
 const SETTINGS_ITEMS = [
   'MASTER VOLUME', 'MUSIC / HUM', 'SFX VOLUME', 'MUTE', 'CRT EFFECT',
-  'SCANLINES', 'FLICKER', 'RGB SHIFT', 'GLOW', 'FREE PLAY',
-  'FULLSCREEN', 'RESET HIGH SCORES', 'BACK',
+  'SCANLINES', 'FLICKER', 'RGB SHIFT', 'GLOW', 'FULLSCREEN',
+  'RESET HIGH SCORES', 'BACK',
 ] as const;
 type SettingsItem = typeof SETTINGS_ITEMS[number];
 
@@ -46,8 +45,6 @@ const clamp = (value: number, min: number, max: number): number => Math.max(min,
 
 export interface MachineSnapshot {
   state: AppState;
-  credits: number;
-  freePlay: boolean;
   selectedGame: GameId;
   activeGame: GameId | '';
   score: number;
@@ -56,7 +53,6 @@ export interface MachineSnapshot {
 
 export class ArcadeMachine {
   private readonly storage = new StorageManager();
-  private readonly credits = new CreditManager();
   private readonly states = new StateManager();
   private readonly games = new GameManager();
   private readonly audio: AudioManager;
@@ -87,7 +83,8 @@ export class ArcadeMachine {
     );
     this.cabinet = new Cabinet(root, this.input, () => {
       this.handleActivity();
-      this.togglePower();
+      this.audio.play('button');
+      void this.toggleFullscreen();
     });
     this.registerGames();
     this.input.subscribe((action, isDown) => {
@@ -96,7 +93,6 @@ export class ArcadeMachine {
       else if (action === 'buttonA' || action === 'buttonB' || action === 'buttonC' || action === 'start') this.audio.play('button');
     });
     this.cabinet.setSettings(this.storage.settings);
-    this.cabinet.setCredits(0, this.storage.settings.freePlay);
     this.audio.play('crtOn');
     this.animationFrame = requestAnimationFrame((time) => this.frame(time));
   }
@@ -105,8 +101,6 @@ export class ArcadeMachine {
     const game = this.games.current;
     return {
       state: this.states.state,
-      credits: this.credits.credits,
-      freePlay: this.storage.settings.freePlay,
       selectedGame: this.selectedGame,
       activeGame: this.activeGame,
       score: game?.score ?? this.gameOverScore,
@@ -148,13 +142,10 @@ export class ArcadeMachine {
 
   private update(deltaSeconds: number, wallSeconds: number): void {
     this.cabinet.setState(this.states.state);
-    this.cabinet.setCredits(this.credits.credits, this.storage.settings.freePlay);
     if (this.noticeTimer > 0) {
       this.noticeTimer -= wallSeconds;
       if (this.noticeTimer <= 0) this.notice = '';
     }
-
-    if (this.input.pressed('coin')) this.insertCoin();
 
     switch (this.states.state) {
       case 'POWER_OFF':
@@ -202,11 +193,6 @@ export class ArcadeMachine {
     if (!(this.input.pressed('start') || this.input.pressed('buttonA'))) return;
     this.audio.play('confirm');
     if (this.menuIndex < GAMES.length) {
-      if (!this.credits.consume(this.storage.settings.freePlay)) {
-        this.showNotice('INSERT COIN', 1.6);
-        this.cabinet.flash('#ff315f', 0.3);
-        return;
-      }
       this.launchGame(GAMES[this.menuIndex].id);
       return;
     }
@@ -266,7 +252,6 @@ export class ArcadeMachine {
       case 'FLICKER': this.commitSettings({ flicker: direction > 0 }); break;
       case 'RGB SHIFT': this.commitSettings({ rgbShift: direction > 0 }); break;
       case 'GLOW': this.commitSettings({ glow: direction > 0 }); break;
-      case 'FREE PLAY': this.commitSettings({ freePlay: direction > 0 }); break;
       default: break;
     }
     this.audio.play('move');
@@ -280,7 +265,6 @@ export class ArcadeMachine {
       case 'FLICKER': this.commitSettings({ flicker: !settings.flicker }); break;
       case 'RGB SHIFT': this.commitSettings({ rgbShift: !settings.rgbShift }); break;
       case 'GLOW': this.commitSettings({ glow: !settings.glow }); break;
-      case 'FREE PLAY': this.commitSettings({ freePlay: !settings.freePlay }); break;
       case 'FULLSCREEN': void this.toggleFullscreen(); break;
       case 'RESET HIGH SCORES':
         this.storage.resetHighScores();
@@ -296,17 +280,6 @@ export class ArcadeMachine {
     const settings = this.storage.updateSettings(patch);
     this.audio.updateSettings(settings);
     this.cabinet.setSettings(settings);
-    this.cabinet.setCredits(this.credits.credits, settings.freePlay);
-  }
-
-  private insertCoin(): void {
-    if (this.states.state === 'POWER_OFF') this.powerOn();
-    const value = this.credits.insert();
-    this.storage.recordCoin();
-    this.audio.play('coin');
-    this.cabinet.flashCoin();
-    this.cabinet.flash('#ffda68', 0.16);
-    this.showNotice(`CREDIT ${String(value).padStart(2, '0')}`, 1.05);
   }
 
   private launchGame(id: GameId): void {
@@ -392,10 +365,6 @@ export class ArcadeMachine {
   private showNotice(message: string, duration: number): void {
     this.notice = message;
     this.noticeTimer = duration;
-  }
-
-  private togglePower(): void {
-    if (this.states.state === 'POWER_OFF') this.powerOn(); else this.powerOff();
   }
 
   private powerOn(): void {
@@ -560,12 +529,12 @@ export class ArcadeMachine {
     }
     ctx.textAlign = 'center';
     ctx.font = 'bold 11px monospace';
-    ctx.fillStyle = this.notice ? '#ffdf67' : (this.storage.settings.freePlay ? '#64ffe0' : '#ff4f92');
-    const prompt = this.notice || (this.storage.settings.freePlay ? 'FREE PLAY · PRESS START' : (this.credits.credits > 0 ? 'PRESS START' : 'INSERT COIN'));
-    if (this.notice || this.credits.credits > 0 || Math.floor(time * 2) % 2 === 0) ctx.fillText(prompt, 192, 255);
+    ctx.fillStyle = this.notice ? '#ffdf67' : '#64ffe0';
+    const prompt = this.notice || 'PRESS START TO PLAY';
+    if (this.notice || Math.floor(time * 2) % 2 === 0) ctx.fillText(prompt, 192, 258);
     ctx.font = '8px monospace';
     ctx.fillStyle = '#77b0a5';
-    ctx.fillText(`CREDIT ${this.storage.settings.freePlay ? 'FP' : String(this.credits.credits).padStart(2, '0')}`, 192, 274);
+    ctx.fillText('7 CLASSIC GAMES · HIGH SCORES SAVED', 192, 276);
   }
 
   private renderGameLoading(ctx: CanvasRenderingContext2D, time: number): void {
@@ -659,7 +628,6 @@ export class ArcadeMachine {
       'FLICKER': settings.flicker ? 'ON' : 'OFF',
       'RGB SHIFT': settings.rgbShift ? 'ON' : 'OFF',
       'GLOW': settings.glow ? 'ON' : 'OFF',
-      'FREE PLAY': settings.freePlay ? 'ON' : 'OFF',
       'FULLSCREEN': document.fullscreenElement ? 'ON' : 'OFF',
       'RESET HIGH SCORES': '',
       'BACK': '',
@@ -706,7 +674,7 @@ export class ArcadeMachine {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#856f4e';
     ctx.font = '7px monospace';
-    ctx.fillText(`${this.storage.stats.gamesPlayed} GAMES PLAYED · ${this.storage.stats.coinsInserted} COINS`, 192, 253);
+    ctx.fillText(`${this.storage.stats.gamesPlayed} GAMES PLAYED · RECORDS SAVED LOCALLY`, 192, 253);
     ctx.fillStyle = '#d8c27f';
     if (Math.floor(time * 2) % 2 === 0) ctx.fillText('PRESS START TO RETURN', 192, 270);
   }
@@ -736,7 +704,7 @@ export class ArcadeMachine {
     ctx.textAlign = 'center';
     ctx.font = 'bold 11px monospace';
     ctx.fillStyle = '#ff4f9b';
-    if (Math.floor(time * 2) % 2 === 0) ctx.fillText(this.storage.settings.freePlay ? 'PRESS START' : 'INSERT COIN', 192, 265);
+    if (Math.floor(time * 2) % 2 === 0) ctx.fillText('PRESS START', 192, 265);
   }
 
   private renderAttractDemo(ctx: CanvasRenderingContext2D, game: GameInfo, local: number, time: number): void {
@@ -793,7 +761,7 @@ export class ArcadeMachine {
     const selected = GAMES.find((entry) => entry.id === this.selectedGame)?.title ?? '';
     const parts = [
       this.states.state.replaceAll('_', ' '),
-      `CREDIT ${this.storage.settings.freePlay ? 'FREE PLAY' : String(this.credits.credits).padStart(2, '0')}`,
+      'READY TO PLAY',
       this.activeGame ? `GAME ${GAMES.find((entry) => entry.id === this.activeGame)?.title}` : `SELECTED ${selected}`,
     ];
     if (game) parts.push(`SCORE ${game.score}`, `LEVEL ${game.level}`, `LIVES ${game.lives}`);

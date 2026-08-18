@@ -86,7 +86,7 @@ const INVADER_SPRITES: ReadonlyArray<ReadonlyArray<string>> = [
 /** A complete fixed-screen formation shooter with destructible pixel barriers. */
 export class StarInvaders extends BaseGame {
   readonly id = 'star-invaders' as const;
-  readonly title = 'STAR INVADERS';
+  readonly title = 'SPACE INVADERS';
   readonly controls = '← → MOVE  ·  A FIRE';
 
   private playerX = SCREEN_WIDTH / 2;

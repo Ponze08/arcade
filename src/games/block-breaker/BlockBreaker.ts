@@ -79,7 +79,7 @@ const POWER_LABELS: Record<PowerKind, string> = {
 /** Paddle-and-ball arcade game with varied bricks, drops, lives and generated stages. */
 export class BlockBreaker extends BaseGame {
   readonly id = 'block-breaker' as const;
-  readonly title = 'BLOCK BREAKER';
+  readonly title = 'BREAKOUT';
   readonly controls = 'LEFT/RIGHT: PADDLE  •  A: LAUNCH';
 
   private bricks: Brick[] = [];

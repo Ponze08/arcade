@@ -82,7 +82,7 @@ const GHOST_COLORS = ['#ff4f8b', '#32e7ff', '#ff9d2e', '#b970ff'] as const;
 
 export class MazeChaser extends BaseGame {
   readonly id = 'maze-chaser' as const;
-  readonly title = 'MAZE CHASER';
+  readonly title = 'PAC-MAN';
   readonly controls = 'JOYSTICK TO MOVE';
 
   private player: Mover = { col: 9, row: 11, direction: 'left', progress: 0 };
@@ -845,7 +845,7 @@ export class MazeChaser extends BaseGame {
     let heading = '';
     let subheading = '';
     if (this.readyTimer > 0) {
-      heading = this.level === 1 && this.time < 0.85 ? 'MAZE CHASER' : `LEVEL ${String(this.level).padStart(2, '0')}`;
+      heading = this.level === 1 && this.time < 0.85 ? 'PAC-MAN' : `LEVEL ${String(this.level).padStart(2, '0')}`;
       subheading = 'READY';
     } else if (this.levelTimer > 0) {
       heading = 'GRID CLEARED';

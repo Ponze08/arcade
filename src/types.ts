@@ -19,13 +19,11 @@ export type Action =
   | 'buttonB'
   | 'buttonC'
   | 'start'
-  | 'coin'
   | 'pause';
 
 export type SoundName =
   | 'move'
   | 'button'
-  | 'coin'
   | 'start'
   | 'confirm'
   | 'shot'
@@ -96,13 +94,11 @@ export interface ArcadeSettings {
   flicker: boolean;
   rgbShift: boolean;
   glow: boolean;
-  freePlay: boolean;
 }
 
 export interface ArcadeStats {
   gamesPlayed: number;
   totalPlaySeconds: number;
-  coinsInserted: number;
   playsByGame: Record<GameId, number>;
 }
 
