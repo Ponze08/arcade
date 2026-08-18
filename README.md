@@ -2,6 +2,10 @@
 
 Retro Arcade è una macchina arcade virtuale completa, vista frontalmente e costruita come un oggetto fisico: cabinet, marquee illuminata, monitor CRT, joystick animato, pulsanti meccanici, coin slot, crediti, audio sintetizzato e sette giochi originali. Tutto funziona in una singola applicazione, senza ricaricare la pagina.
 
+## Live Demo
+
+https://ponze08.github.io/arcade/
+
 ## Features
 
 - Cabinet arcade responsive con prospettiva, pannello comandi inclinato, speaker, viti, metallo, plastiche, riflessi, usura leggera e sala giochi sullo sfondo.
